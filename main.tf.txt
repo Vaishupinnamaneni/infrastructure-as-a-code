@@ -1,0 +1,91 @@
+# Setting Up a Basic EC2 Instance Using Terraform
+
+## Prerequisites
+Before you begin, ensure you have the following installed:
+- [Terraform](https://developer.hashicorp.com/terraform/downloads)
+- AWS CLI configured with appropriate credentials (`aws configure`)
+- An AWS account with necessary permissions to create resources
+
+## Step 1: Create a Working Directory
+```sh
+mkdir terraform-aws-setup && cd terraform-aws-setup
+```
+
+## Step 2: Write the Terraform Configuration File
+Create a file named `main.tf` and add the following configuration:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"  # Change to your preferred region
+}
+
+resource "aws_security_group" "instance_sg" {
+  name        = "instance-security-group"
+  description = "Allow SSH and HTTP"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere (Update for security)
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow HTTP traffic
+  }
+}
+
+resource "aws_instance" "example" {
+  ami             = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2 AMI (Update as needed)
+  instance_type   = "t2.micro"
+  key_name        = "my-key-pair"  # Replace with your actual key pair name
+  security_groups = [aws_security_group.instance_sg.name]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo yum update -y
+              sudo yum install -y httpd
+              sudo systemctl start httpd
+              sudo systemctl enable httpd
+              EOF
+
+  tags = {
+    Name = "TerraformEC2Instance"
+  }
+}
+```
+
+## Step 3: Initialize Terraform
+Run the following command to initialize Terraform and download the AWS provider:
+```sh
+terraform init
+```
+
+## Step 4: Preview and Apply the Changes
+Check the execution plan before applying the changes:
+```sh
+terraform plan
+```
+If everything looks good, apply the changes:
+```sh
+terraform apply -auto-approve
+```
+
+## Step 5: Verify the EC2 Instance
+Once the instance is created, you can check it in the AWS Console or run:
+```sh
+aws ec2 describe-instances --query 'Reservations[*].Instances[*].InstanceId' --output text
+```
+
+## Step 6: Destroy the Infrastructure (Optional)
+To clean up and remove the EC2 instance, run:
+```sh
+terraform destroy -auto-approve
+```
+
+## Conclusion
+You have successfully set up a basic EC2 instance using Terraform with security groups, SSH access, and user data to install Apache! 🎉
+
